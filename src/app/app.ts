@@ -1,8 +1,9 @@
 import { Component, signal } from '@angular/core';
+import { HeroBadge } from './hero-badge/hero-badge';
 
 @Component({
   selector: 'app-root',
-  imports: [],
+  imports: [HeroBadge],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
