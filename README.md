@@ -1,59 +1,71 @@
 # HeroJourney
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.1.
+This project uses Angular Standalone with Server-Side Rendering (SSR), zoneless change detection, and client hydration.
+
+## Prerequisites
+- Node.js ^20.19.0 (recommended: 20 LTS)
 
 ## Development server
-
-To start a local development server, run:
-
+Start the dev server (with hydration and HMR):
 ```bash
 ng serve
 ```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
+Then open http://localhost:4200/.
 
 ## Building
-
-To build the project run:
-
+Build a production SSR bundle:
 ```bash
 ng build
 ```
+Artifacts are emitted to:
+- dist/hero-journey/browser (client)
+- dist/hero-journey/server (server)
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+## Run production SSR
+After building:
+```bash
+npm run serve:ssr:hero-journey
+# -> Node Express server listening on http://localhost:4000
+```
 
 ## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
+Run Karma/Jasmine tests:
 ```bash
 ng test
 ```
 
-## Running end-to-end tests
+## Project structure highlights
+- src/main.ts
+  - Client bootstrap via bootstrapApplication(App, appConfig).
+- src/main.server.ts
+  - Server bootstrap for SSR.
+- src/server.ts
+  - Express integration for SSR runtime (dev/build handler and prod server).
+- src/app/app.config.ts
+  - Zoneless app with provideZonelessChangeDetection and provideClientHydration(withEventReplay()).
+- src/app/app.config.server.ts + src/app/app.routes.server.ts
+  - Server providers and prerender routes (RenderMode.Prerender).
+- src/index.html
+  - Root host element <app-root>.
+- angular.json
+  - Application builder with outputMode: "server" and ssr.entry pointing to src/server.ts.
+- tsconfig*.json
+  - Strict TypeScript settings for app/spec.
+- public/
+  - Static assets are served from this folder.
 
-For end-to-end (e2e) testing, run:
+## Code scaffolding
+```bash
+ng generate component component-name
+# for more:
+ng generate --help
+```
 
+## End-to-end tests
 ```bash
 ng e2e
 ```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Angular CLI does not include an e2e framework by default; choose one as needed.
 
 ## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- Angular CLI Overview and Command Reference: https://angular.dev/tools/cli
