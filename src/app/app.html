@@ -1,2 +1,16 @@
 <h1>Hello, {{ title() }}</h1>
+
+@if (hero(); as h) {
+  <section
+    [title]="'Hero #' + h.id"
+    [class.is-a]="h.rank === 'A'"
+    [attr.aria-label]="'hero-' + h.name">
+    <h2>{{ h.name }}</h2>
+    <p>Rank: {{ h.rank ?? 'N/A' }}</p>
+  </section>
+} @else {
+  <p class="muted">No hero selected.</p>
+}
+
+<!-- 保留 Day03 範例 -->
 <app-hero-badge></app-hero-badge>
