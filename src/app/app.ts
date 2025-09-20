@@ -12,6 +12,14 @@ type Hero = { id: number; name: string; rank?: string };
 export class App {
   protected readonly title = signal('hero-journey');
 
-  // protected readonly hero = signal<Hero | null>({ id: 1, name: 'Narco', rank: 'A' });
-  protected readonly hero = signal<Hero | null>(null);
+  protected readonly heroes = signal<Hero[]>([
+    { id: 11, name: 'Dr Nice', rank: 'B' },
+    { id: 12, name: 'Narco', rank: 'A' },
+    { id: 13, name: 'Bombasto' },
+    { id: 14, name: 'Celeritas', rank: 'S' },
+  ]);
+
+  constructor() {
+    this.heroes.set([]);
+  }
 }
