@@ -46,3 +46,16 @@ li {
 .muted {
   color: #888;
 }
+
+.selected {
+  outline: 2px solid #58a;
+  background: #eef6ff;
+}
+
+.panel {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border: 1px solid #dde6f2;
+  border-radius: 6px;
+  background: #fafcff;
+}
