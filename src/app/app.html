@@ -26,6 +26,31 @@
         #{{ s.id }} - {{ s.name }}
         @if (s.rank) { <span class="rank">[{{ s.rank }}]</span> }
       </p>
+
+      <label for="hero-name">Edit name：</label>
+      <input
+        id="hero-name"
+        name="hero-name"
+        type="text"
+        placeholder="enter new name"
+        required
+        minlength="3"
+        #nameCtrl="ngModel"
+        [ngModel]="s.name"
+        (ngModelChange)="updateName($event)"
+        [attr.aria-invalid]="nameCtrl.invalid && nameCtrl.touched"
+        aria-describedby="hero-name-errors" />
+
+      @if (nameCtrl.invalid && nameCtrl.touched) {
+        <ul id="hero-name-errors" class="errors">
+          @if (nameCtrl.hasError('required')) {
+            <li>請輸入名稱</li>
+          }
+          @if (nameCtrl.hasError('minlength')) {
+            <li>至少 3 個字</li>
+          }
+        </ul>
+      }
     </aside>
   }
 </section>
