@@ -1,8 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { HeroService, Hero } from './hero.service';
 import { HeroBadge } from './hero-badge/hero-badge';
 import { FormsModule } from '@angular/forms';
-
-type Hero = { id: number; name: string; rank?: string };
 
 @Component({
   selector: 'app-root',
@@ -11,21 +10,20 @@ type Hero = { id: number; name: string; rank?: string };
   styleUrl: './app.scss',
 })
 export class App {
+  // 使用 inject() 取得 HeroService
+  private readonly heroService = inject(HeroService);
+
   protected readonly title = signal('hero-journey');
 
-  protected readonly heroes = signal<Hero[]>([
-    { id: 11, name: 'Dr Nice', rank: 'B' },
-    { id: 12, name: 'Narco', rank: 'A' },
-    { id: 13, name: 'Bombasto' },
-    { id: 14, name: 'Celeritas', rank: 'S' },
-  ]);
+  // 由服務提供初始資料
+  protected readonly heroes = signal<Hero[]>(this.heroService.getAll());
 
   // 目前選中的英雄
   protected readonly selectedHero = signal<Hero | null>(null);
 
-  constructor() {
-    this.heroes.set([]);
-  }
+  // constructor() {
+  //   this.heroes.set([]);
+  // }
 
   // 點擊處理
   onSelect(hero: Hero) {
@@ -33,22 +31,21 @@ export class App {
     this.selectedHero.set(cur?.id === hero.id ? null : hero);
   }
 
-  // 新增：同步更新 selectedHero 與 heroes 清單
+  // 調整：讓服務處理邏輯，再回傳至元件將資料顯示
   updateName(name: string) {
     const selected = this.selectedHero();
     if (!selected) {
       return;
     }
 
-    // 1. 建立更新後的英雄物件
-    const updatedHero = { ...selected, name };
+    const updated = this.heroService.updateName(selected.id, name);
+    if (!updated) {
+      return;
+    }
 
-    // 2. 更新英雄列表 (heroes signal)
     this.heroes.update((list) =>
-      list.map((hero) => (hero.id === updatedHero.id ? updatedHero : hero))
+      list.map((hero) => (hero.id === selected.id ? { ...hero, name: updated.name } : hero))
     );
-
-    // 3. 更新當前選取的英雄 (selectedHero signal)
-    this.selectedHero.set(updatedHero);
+    this.selectedHero.set({ ...selected, name: updated.name });
   }
 }
