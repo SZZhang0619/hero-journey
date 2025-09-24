@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { delay, of, throwError } from 'rxjs';
 
 export type Hero = { id: number; name: string; rank?: string };
 
@@ -15,6 +16,12 @@ export class HeroService {
 
   getAll(): Hero[] {
     return this.data;
+  }
+
+  // 新增：以 Observable 回傳資料，加入 delay 模擬網路延遲
+  getAll$() {
+    // return of(this.getAll()).pipe(delay(2000));
+    return throwError(() => new Error(`此為人工製造錯誤`));
   }
 
   getById(id: number): Hero | undefined {
