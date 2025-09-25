@@ -1,0 +1,60 @@
+@if (heroesLoading()) {
+  <p class="muted">Loading heroes...</p>
+} @else if (heroesError(); as e) {
+  <p class="error">Load failed: {{ e }}</p>
+} @else {
+  <section>
+    <h2>Heroes</h2>
+    <ul>
+      @for (h of heroes(); track h.id; let i = $index; let c = $count) {
+        <li
+          (click)="onSelect(h)"
+          [class.is-a]="h.rank === 'A' || h.rank === 'S'"
+          [class.selected]="selectedHero()?.id === h.id"
+          [attr.data-id]="h.id"
+          [attr.aria-current]="selectedHero()?.id === h.id ? 'true' : null">
+          <span class="no">{{ i + 1 }}/{{ c }}</span>
+          <span class="name">{{ h.name }}</span>
+          @if (h.rank) { <span class="rank">[{{ h.rank }}]</span> }
+        </li>
+      } @empty {
+        <li class="muted">No heroes.</li>
+      }
+    </ul>
+
+    @if (selectedHero(); as s) {
+      <aside class="panel">
+        <h3>Selected</h3>
+        <p>
+          #{{ s.id }} - {{ s.name }}
+          @if (s.rank) { <span class="rank">[{{ s.rank }}]</span> }
+        </p>
+
+        <label for="hero-name">Edit name：</label>
+        <input
+          id="hero-name"
+          name="hero-name"
+          type="text"
+          placeholder="enter new name"
+          required
+          minlength="3"
+          #nameCtrl="ngModel"
+          [ngModel]="s.name"
+          (ngModelChange)="updateName($event)"
+          [attr.aria-invalid]="nameCtrl.invalid && nameCtrl.touched"
+          aria-describedby="hero-name-errors" />
+
+        @if (nameCtrl.invalid && nameCtrl.touched) {
+          <ul id="hero-name-errors" class="errors">
+            @if (nameCtrl.hasError('required')) {
+              <li>請輸入名稱</li>
+            }
+            @if (nameCtrl.hasError('minlength')) {
+              <li>至少 3 個字</li>
+            }
+          </ul>
+        }
+      </aside>
+    }
+  </section>
+}

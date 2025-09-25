@@ -1,0 +1,60 @@
+.error {
+  color: #c33;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 4px 0;
+}
+
+.no {
+  width: 56px;
+  color: #789;
+}
+
+.name {
+  font-weight: 600;
+}
+
+.rank {
+  color: #445;
+  background: #eef;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.is-a {
+  color: #225;
+  background: #eef;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.muted {
+  color: #888;
+}
+
+.selected {
+  outline: 2px solid #58a;
+  background: #eef6ff;
+}
+
+.panel {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border: 1px solid #dde6f2;
+  border-radius: 6px;
+  background: #fafcff;
+}
+
+.errors {
+  color: #c33;
+}
