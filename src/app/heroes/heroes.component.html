@@ -16,6 +16,10 @@
           <span class="no">{{ i + 1 }}/{{ c }}</span>
           <span class="name">{{ h.name }}</span>
           @if (h.rank) { <span class="rank">[{{ h.rank }}]</span> }
+
+          <span class="actions">
+			      <a [routerLink]="['/detail', h.id]" (click)="$event.stopPropagation()">View</a>
+		      </span>
         </li>
       } @empty {
         <li class="muted">No heroes.</li>

@@ -2,10 +2,11 @@ import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { HeroService, Hero } from '../hero.service';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-heroes',
-  imports: [FormsModule],
+  imports: [FormsModule, RouterModule],
   templateUrl: './heroes.component.html',
   styleUrl: './heroes.component.scss',
 })
