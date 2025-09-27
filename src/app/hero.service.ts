@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
-import { delay, map, of, throwError } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
+import { tap } from 'rxjs';
 
 export type Hero = { id: number; name: string; rank?: string };
 
@@ -7,37 +8,39 @@ export type Hero = { id: number; name: string; rank?: string };
   providedIn: 'root',
 })
 export class HeroService {
-  protected readonly data: Hero[] = [
-    { id: 11, name: 'Dr Nice', rank: 'B' },
-    { id: 12, name: 'Narco', rank: 'A' },
-    { id: 13, name: 'Bombasto' },
-    { id: 14, name: 'Celeritas', rank: 'S' },
-  ];
-
-  getAll(): Hero[] {
-    return this.data;
-  }
+  private readonly http = inject(HttpClient);
+  private readonly baseUrl = 'api/heroes';
+  private readonly cache = new Map<number, Hero>();
 
   getAll$() {
-    return of(this.getAll()).pipe(delay(2000));
-    // return throwError(() => new Error(`此為人工製造錯誤`));
-  }
-
-  getById$(id: number) {
-    return of(null).pipe(
-      delay(200), // 模擬非同步
-      map(() => this.getAll().find((h) => h.id === id))
+    return this.http.get<Hero[]>(this.baseUrl).pipe(
+      tap((heroes) => {
+        this.cache.clear();
+        for (const hero of heroes) {
+          this.cache.set(hero.id, hero);
+        }
+      })
     );
   }
 
-  getById(id: number): Hero | undefined {
-    return this.data.find((hero) => hero.id === id);
+  getById$(id: number) {
+    return this.http.get<Hero>(`${this.baseUrl}/${id}`).pipe(
+      tap((hero) => {
+        if (!hero) {
+          return;
+        }
+        this.cache.set(hero.id, hero);
+      })
+    );
   }
 
   updateName(id: number, name: string): Hero | undefined {
-    const hero = this.getById(id);
+    const hero = this.cache.get(id);
+
     if (!hero) return undefined;
-    hero.name = name.trim();
-    return hero;
+
+    const updated = { ...hero, name: name.trim() };
+    this.cache.set(updated.id, updated);
+    return updated;
   }
 }

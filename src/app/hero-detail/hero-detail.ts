@@ -24,7 +24,7 @@ export class HeroDetail {
   constructor() {
     // 當 id 改變時重新載入
     effect(() => {
-      const curId = Number('99');
+      const curId = Number(this.id());
       this.loading.set(true);
       this.error.set(null);
 
