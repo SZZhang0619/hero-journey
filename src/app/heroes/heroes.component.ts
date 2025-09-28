@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterModule } from '@angular/router';
 import { HeroBadge } from '../hero-badge/hero-badge';
+import { EMPTY, catchError, finalize } from 'rxjs';
 
 @Component({
   selector: 'app-heroes',
@@ -32,6 +33,10 @@ export class HeroesComponent {
   protected readonly creating = signal(false);
   protected readonly createError = signal<string | null>(null);
 
+  protected readonly deletingId = signal<number | null>(null);
+  protected readonly deleteError = signal<string | null>(null);
+  protected readonly feedback = signal<string | null>(null);
+
   constructor() {
     // 從 Observable 取得資料
     this.heroService
@@ -57,7 +62,8 @@ export class HeroesComponent {
 
   // 點擊處理
   onSelect(hero: Hero) {
-    this.selectedHero.set(hero);
+    const current = this.selectedHero();
+    this.selectedHero.set(current?.id === hero.id ? null : hero);
   }
 
   saveSelected() {
@@ -73,6 +79,7 @@ export class HeroesComponent {
 
     this.saving.set(true);
     this.saveError.set(null);
+    this.feedback.set(null);
 
     this.heroService
       .update$(current.id, { name })
@@ -101,6 +108,7 @@ export class HeroesComponent {
 
     this.creating.set(true);
     this.createError.set(null);
+    this.feedback.set(null);
 
     this.heroService
       .create$(name)
@@ -117,6 +125,38 @@ export class HeroesComponent {
           this.createError.set(String(err ?? 'Unknown error'));
           this.creating.set(false);
         },
+      });
+  }
+
+  removeHero(hero: Hero) {
+    const confirmed = confirm(`確定要刪除英雄「${hero.name}」嗎？`);
+    if (!confirmed) {
+      return;
+    }
+
+    this.deletingId.set(hero.id);
+    this.deleteError.set(null);
+    this.feedback.set(null);
+
+    this.heroService
+      .delete$(hero.id)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        catchError((err) => {
+          this.deleteError.set(String(err ?? 'Unknown error'));
+          return EMPTY;
+        }),
+        finalize(() => {
+          this.deletingId.set(null);
+        })
+      )
+      .subscribe(() => {
+        this.heroes.update((list) => list.filter((h) => h.id !== hero.id));
+        if (this.selectedHero()?.id === hero.id) {
+          this.selectedHero.set(null);
+          this.editName.set('');
+        }
+        this.feedback.set(`已刪除英雄「${hero.name}」。`);
       });
   }
 }

@@ -53,4 +53,12 @@ export class HeroService {
       })
     );
   }
+
+  delete$(id: number) {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`).pipe(
+      tap(() => {
+        this.cache.delete(id);
+      })
+    );
+  }
 }

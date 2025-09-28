@@ -2,6 +2,14 @@
   color: #c33;
 }
 
+.feedback {
+  margin: 12px 0;
+  padding: 8px 12px;
+  background: #e6f6ec;
+  color: #0a5e2a;
+  border-radius: 6px;
+}
+
 ul {
   list-style: none;
   padding: 0;
@@ -81,4 +89,16 @@ li {
 
 .error {
   color: #c33;
+}
+
+button.danger {
+  margin-left: 8px;
+  background: #f7eceb;
+  color: #a32020;
+  border-color: #f1c4c1;
+}
+
+button.danger[disabled] {
+  opacity: 0.7;
+  cursor: progress;
 }

@@ -4,7 +4,7 @@
   <p class="error">Load failed: {{ e }}</p>
 } @else {
   <section class="create">
-  <app-hero-badge></app-hero-badge>
+    <app-hero-badge></app-hero-badge>
     <form (ngSubmit)="addHero()">
       <label for="new-hero">Name：</label>
       <input
@@ -25,6 +25,14 @@
     }
   </section>
 
+  @if (feedback(); as msg) {
+    <p class="feedback" aria-live="polite">{{ msg }}</p>
+  }
+
+  @if (deleteError(); as err) {
+    <p class="error" aria-live="assertive">Delete failed: {{ err }}</p>
+  }
+
   <section class="list">
     <!-- 既有清單保留 Day10 寫法 -->
     <ul>
@@ -40,6 +48,13 @@
           @if (h.rank) { <span class="rank">[{{ h.rank }}]</span> }
           <span class="actions">
             <a [routerLink]="['/detail', h.id]" (click)="$event.stopPropagation()">View</a>
+            <button
+              type="button"
+              class="danger"
+              (click)="removeHero(h); $event.stopPropagation()"
+              [disabled]="deletingId() === h.id">
+              @if (deletingId() === h.id) { Deleting... } @else { Delete }
+            </button>
           </span>
         </li>
       } @empty {

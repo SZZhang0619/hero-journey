@@ -16,6 +16,8 @@ export const appConfig: ApplicationConfig = {
       HttpClientInMemoryWebApiModule.forRoot(InMemoryData, {
         dataEncapsulation: false,
         delay: 300,
+        post204: false,
+        put204: false,
       })
     ),
     provideClientHydration(withEventReplay())
