@@ -34,13 +34,23 @@ export class HeroService {
     );
   }
 
-  updateName(id: number, name: string): Hero | undefined {
-    const hero = this.cache.get(id);
+  create$(name: string) {
+    const payload = { name: name.trim() };
+    return this.http.post<Hero>(this.baseUrl, payload).pipe(
+      tap((created) => {
+        this.cache.set(created.id, created);
+      })
+    );
+  }
 
-    if (!hero) return undefined;
+  update$(id: number, changes: Partial<Hero>) {
+    const cached = this.cache.get(id);
+    const payload = { ...(cached ?? { id }), ...changes, id };
 
-    const updated = { ...hero, name: name.trim() };
-    this.cache.set(updated.id, updated);
-    return updated;
+    return this.http.put<Hero>(`${this.baseUrl}/${id}`, payload).pipe(
+      tap((updated) => {
+        this.cache.set(updated.id, updated);
+      })
+    );
   }
 }

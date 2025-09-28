@@ -1,12 +1,13 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { HeroService, Hero } from '../hero.service';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterModule } from '@angular/router';
+import { HeroBadge } from '../hero-badge/hero-badge';
 
 @Component({
   selector: 'app-heroes',
-  imports: [FormsModule, RouterModule],
+  imports: [HeroBadge, FormsModule, RouterModule],
   templateUrl: './heroes.component.html',
   styleUrl: './heroes.component.scss',
 })
@@ -20,6 +21,16 @@ export class HeroesComponent {
   protected readonly selectedHero = signal<Hero | null>(null);
   protected readonly heroesLoading = signal(true);
   protected readonly heroesError = signal<string | null>(null);
+
+  // 新增：編輯與儲存狀態
+  protected readonly editName = signal('');
+  protected readonly saving = signal(false);
+  protected readonly saveError = signal<string | null>(null);
+
+  // 新增：建立英雄表單狀態
+  protected readonly newHeroName = signal('');
+  protected readonly creating = signal(false);
+  protected readonly createError = signal<string | null>(null);
 
   constructor() {
     // 從 Observable 取得資料
@@ -36,29 +47,76 @@ export class HeroesComponent {
           this.heroesLoading.set(false);
         },
       });
+
+    effect(() => {
+      const current = this.selectedHero();
+      this.editName.set(current?.name ?? '');
+      this.saveError.set(null);
+    });
   }
 
   // 點擊處理
   onSelect(hero: Hero) {
-    const cur = this.selectedHero();
-    this.selectedHero.set(cur?.id === hero.id ? null : hero);
+    this.selectedHero.set(hero);
   }
 
-  // 調整：讓服務處理邏輯，再回傳至元件將資料顯示
-  updateName(name: string) {
-    const selected = this.selectedHero();
-    if (!selected) {
+  saveSelected() {
+    const current = this.selectedHero();
+    if (!current) {
       return;
     }
 
-    const updated = this.heroService.updateName(selected.id, name);
-    if (!updated) {
+    const name = this.editName().trim();
+    if (name.length < 3 || name === current.name) {
       return;
     }
 
-    this.heroes.update((list) =>
-      list.map((hero) => (hero.id === selected.id ? { ...hero, name: updated.name } : hero))
-    );
-    this.selectedHero.set({ ...selected, name: updated.name });
+    this.saving.set(true);
+    this.saveError.set(null);
+
+    this.heroService
+      .update$(current.id, { name })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.heroes.update((list) =>
+            list.map((hero) => (hero.id === updated.id ? updated : hero))
+          );
+          this.selectedHero.set(updated);
+          this.editName.set(updated.name);
+          this.saving.set(false);
+        },
+        error: (err) => {
+          this.saveError.set(String(err ?? 'Unknown error'));
+          this.saving.set(false);
+        },
+      });
+  }
+
+  addHero() {
+    const name = this.newHeroName().trim();
+    if (name.length < 3) {
+      return;
+    }
+
+    this.creating.set(true);
+    this.createError.set(null);
+
+    this.heroService
+      .create$(name)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (created) => {
+          this.heroes.update((list) => [...list, created]);
+          this.newHeroName.set('');
+          this.selectedHero.set(created);
+          this.editName.set(created.name);
+          this.creating.set(false);
+        },
+        error: (err) => {
+          this.createError.set(String(err ?? 'Unknown error'));
+          this.creating.set(false);
+        },
+      });
   }
 }

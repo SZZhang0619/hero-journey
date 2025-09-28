@@ -3,8 +3,30 @@
 } @else if (heroesError(); as e) {
   <p class="error">Load failed: {{ e }}</p>
 } @else {
-  <section>
-    <h2>Heroes</h2>
+  <section class="create">
+  <app-hero-badge></app-hero-badge>
+    <form (ngSubmit)="addHero()">
+      <label for="new-hero">Name：</label>
+      <input
+        id="new-hero"
+        name="new-hero"
+        placeholder="enter new hero"
+        required
+        minlength="3"
+        #newCtrl="ngModel"
+        [ngModel]="newHeroName()"
+        (ngModelChange)="newHeroName.set($event)" />
+      <button type="submit" [disabled]="creating() || newCtrl.invalid">
+        @if (creating()) { Saving... } @else { Add }
+      </button>
+    </form>
+    @if (createError(); as err) {
+      <p class="error">Create failed: {{ err }}</p>
+    }
+  </section>
+
+  <section class="list">
+    <!-- 既有清單保留 Day10 寫法 -->
     <ul>
       @for (h of heroes(); track h.id; let i = $index; let c = $count) {
         <li
@@ -16,10 +38,9 @@
           <span class="no">{{ i + 1 }}/{{ c }}</span>
           <span class="name">{{ h.name }}</span>
           @if (h.rank) { <span class="rank">[{{ h.rank }}]</span> }
-
           <span class="actions">
-			      <a [routerLink]="['/detail', h.id]" (click)="$event.stopPropagation()">View</a>
-		      </span>
+            <a [routerLink]="['/detail', h.id]" (click)="$event.stopPropagation()">View</a>
+          </span>
         </li>
       } @empty {
         <li class="muted">No heroes.</li>
@@ -28,35 +49,33 @@
 
     @if (selectedHero(); as s) {
       <aside class="panel">
-        <h3>Selected</h3>
+        <h3>Edit</h3>
         <p>
           #{{ s.id }} - {{ s.name }}
           @if (s.rank) { <span class="rank">[{{ s.rank }}]</span> }
         </p>
 
-        <label for="hero-name">Edit name：</label>
+        <label for="hero-name">Name：</label>
         <input
           id="hero-name"
           name="hero-name"
           type="text"
-          placeholder="enter new name"
           required
           minlength="3"
           #nameCtrl="ngModel"
-          [ngModel]="s.name"
-          (ngModelChange)="updateName($event)"
-          [attr.aria-invalid]="nameCtrl.invalid && nameCtrl.touched"
-          aria-describedby="hero-name-errors" />
+          [ngModel]="editName()"
+          (ngModelChange)="editName.set($event)"
+          [attr.aria-invalid]="nameCtrl.invalid && nameCtrl.touched" />
 
-        @if (nameCtrl.invalid && nameCtrl.touched) {
-          <ul id="hero-name-errors" class="errors">
-            @if (nameCtrl.hasError('required')) {
-              <li>請輸入名稱</li>
-            }
-            @if (nameCtrl.hasError('minlength')) {
-              <li>至少 3 個字</li>
-            }
-          </ul>
+        <button
+          type="button"
+          (click)="saveSelected()"
+          [disabled]="saving() || nameCtrl.invalid || editName().trim() === s.name">
+          @if (saving()) { Saving... } @else { Save }
+        </button>
+
+        @if (saveError(); as err) {
+          <p class="error">Save failed: {{ err }}</p>
         }
       </aside>
     }

@@ -58,3 +58,27 @@ li {
 .errors {
   color: #c33;
 }
+
+
+.create {
+  margin-bottom: 24px;
+  padding: 16px;
+  border: 1px solid #e2e6f0;
+  border-radius: 8px;
+  background: #fafbff;
+
+  form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+}
+
+.panel button {
+  margin-top: 12px;
+}
+
+.error {
+  color: #c33;
+}
