@@ -1,9 +1,9 @@
 @if (heroesLoading()) {
-  <p class="muted">Loading heroes...</p>
+  <app-loading-spinner label="Loading heroes..."></app-loading-spinner>
 } @else if (heroesError(); as e) {
   <p class="error">Load failed: {{ e }}</p>
 } @else {
-  <section class="create">
+  <section class="create" id="create">
     <app-hero-badge></app-hero-badge>
     <form (ngSubmit)="addHero()">
       <label for="new-hero">Name：</label>
@@ -34,7 +34,6 @@
   }
 
   <section class="list">
-    <!-- 既有清單保留 Day10 寫法 -->
     <ul>
       @for (h of heroes(); track h.id; let i = $index; let c = $count) {
         <li
@@ -58,7 +57,10 @@
           </span>
         </li>
       } @empty {
-        <li class="muted">No heroes.</li>
+        <li class="empty-state" aria-live="polite">
+          <h3>目前還沒有英雄</h3>
+          <p>點擊上方的 Add 建立第一位夥伴，或在 in-memory API 填入假資料。</p>
+        </li>
       }
     </ul>
 

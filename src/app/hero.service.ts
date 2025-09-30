@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { tap } from 'rxjs';
+import { delay, tap } from 'rxjs';
 
 export type Hero = { id: number; name: string; rank?: string };
 
@@ -14,6 +14,7 @@ export class HeroService {
 
   getAll$() {
     return this.http.get<Hero[]>(this.baseUrl).pipe(
+      delay(2000),
       tap((heroes) => {
         this.cache.clear();
         for (const hero of heroes) {

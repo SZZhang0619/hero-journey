@@ -5,10 +5,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterModule } from '@angular/router';
 import { HeroBadge } from '../hero-badge/hero-badge';
 import { EMPTY, catchError, finalize } from 'rxjs';
+import { LoadingSpinner } from '../ui/loading-spinner/loading-spinner';
 
 @Component({
   selector: 'app-heroes',
-  imports: [HeroBadge, FormsModule, RouterModule],
+  imports: [HeroBadge, FormsModule, RouterModule, LoadingSpinner],
   templateUrl: './heroes.component.html',
   styleUrl: './heroes.component.scss',
 })
