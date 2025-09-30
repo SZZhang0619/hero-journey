@@ -3,6 +3,42 @@
 } @else if (heroesError(); as e) {
   <p class="error">Load failed: {{ e }}</p>
 } @else {
+  <section class="search" role="search">
+    <label for="hero-search">Search heroes</label>
+    <input
+      id="hero-search"
+      type="search"
+      placeholder="輸入關鍵字 (至少 1 個字)"
+      autocomplete="off"
+      (input)="search($any($event.target).value)" />
+
+    @if (searching()) {
+      <app-loading-spinner label="Searching..."></app-loading-spinner>
+    } @else if (searchKeyword()) {
+      <p class="muted">搜尋「{{ searchKeyword() }}」</p>
+    }
+
+    @if (searchError(); as err) {
+      <p class="error">Search failed: {{ err }}</p>
+    }
+
+    @if (searchKeyword() && !searching()) {
+      <ul class="results">
+        @for (hero of searchResults(); track hero.id) {
+          <li>
+            <button type="button" (click)="onSelect(hero)">
+              {{ hero.name }}
+              @if (hero.rank) { <span class="rank">[{{ hero.rank }}]</span> }
+            </button>
+            <a [routerLink]="['/detail', hero.id]" (click)="$event.stopPropagation()">View</a>
+          </li>
+        } @empty {
+          <li class="muted">找不到符合「{{ searchKeyword() }}」的英雄。</li>
+        }
+      </ul>
+    }
+  </section>
+
   <section class="create" id="create">
     <app-hero-badge></app-hero-badge>
     <form (ngSubmit)="addHero()">

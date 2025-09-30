@@ -1,6 +1,6 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { delay, tap } from 'rxjs';
+import { delay, of, tap } from 'rxjs';
 
 export type Hero = { id: number; name: string; rank?: string };
 
@@ -59,6 +59,23 @@ export class HeroService {
     return this.http.delete<void>(`${this.baseUrl}/${id}`).pipe(
       tap(() => {
         this.cache.delete(id);
+      })
+    );
+  }
+
+  search$(term: string) {
+    const keyword = term.trim();
+    if (!keyword) {
+      return of<Hero[]>([]);
+    }
+
+    const params = new HttpParams().set('name', keyword);
+
+    return this.http.get<Hero[]>(this.baseUrl, { params }).pipe(
+      tap((heroes) => {
+        for (const hero of heroes) {
+          this.cache.set(hero.id, hero);
+        }
       })
     );
   }

@@ -4,7 +4,19 @@ import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterModule } from '@angular/router';
 import { HeroBadge } from '../hero-badge/hero-badge';
-import { EMPTY, catchError, finalize } from 'rxjs';
+import {
+  EMPTY,
+  Subject,
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  finalize,
+  map,
+  of,
+  startWith,
+  switchMap,
+  tap,
+} from 'rxjs';
 import { LoadingSpinner } from '../ui/loading-spinner/loading-spinner';
 
 @Component({
@@ -38,6 +50,12 @@ export class HeroesComponent {
   protected readonly deleteError = signal<string | null>(null);
   protected readonly feedback = signal<string | null>(null);
 
+  private readonly searchTerms = new Subject<string>();
+  protected readonly searchKeyword = signal('');
+  protected readonly searchResults = signal<Hero[]>([]);
+  protected readonly searching = signal(false);
+  protected readonly searchError = signal<string | null>(null);
+
   constructor() {
     // 從 Observable 取得資料
     this.heroService
@@ -59,6 +77,38 @@ export class HeroesComponent {
       this.editName.set(current?.name ?? '');
       this.saveError.set(null);
     });
+
+    this.searchTerms
+      .pipe(
+        map((term) => term.trim()),
+        startWith(''),
+        debounceTime(300),
+        distinctUntilChanged(),
+        tap((term) => {
+          this.searchKeyword.set(term);
+          this.searchError.set(null);
+          this.searchResults.set([]);
+        }),
+        switchMap((term) => {
+          if (!term) {
+            this.searching.set(false);
+            return of<Hero[]>([]);
+          }
+
+          this.searching.set(true);
+          return this.heroService.search$(term).pipe(
+            catchError((err) => {
+              this.searchError.set(String(err ?? 'Unknown error'));
+              return of<Hero[]>([]);
+            })
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((heroes) => {
+        this.searchResults.set(heroes);
+        this.searching.set(false);
+      });
   }
 
   // 點擊處理
@@ -159,5 +209,9 @@ export class HeroesComponent {
         }
         this.feedback.set(`已刪除英雄「${hero.name}」。`);
       });
+  }
+
+  search(term: string) {
+    this.searchTerms.next(term);
   }
 }
