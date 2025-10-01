@@ -1,1 +1,3 @@
-<span class="badge">New Hero</span>
+<span class="badge">
+  @if (rank()) { {{ rank() }} } @else { New Hero }
+</span>

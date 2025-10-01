@@ -1,0 +1,32 @@
+.hero-list-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #1b365d;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.hero-list-item:hover,
+.hero-list-item:focus-visible {
+  border-color: #3b5ccc;
+  background: #eef3ff;
+  outline: none;
+}
+
+.hero-list-item--active {
+  border-color: #2549b0;
+  background: #dfe8ff;
+}
+
+.hero-list-item__name {
+  flex: 1;
+  text-align: left;
+}

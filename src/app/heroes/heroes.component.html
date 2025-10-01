@@ -1,36 +1,50 @@
 @if (heroesLoading()) {
   <app-loading-spinner label="Loading heroes..."></app-loading-spinner>
 } @else if (heroesError(); as e) {
-  <p class="error">Load failed: {{ e }}</p>
+  <app-message-banner type="error">Load failed: {{ e }}</app-message-banner>
 } @else {
+  <section class="filters" aria-label="Filter heroes by rank">
+    <span class="filters__label">分類：</span>
+    <div class="filters__group">
+      @for (option of rankOptions(); track option) {
+        <button
+          type="button"
+          (click)="setRankFilter(option)"
+          [class.active]="activeRank() === option">
+          {{ rankLabel(option) }}
+        </button>
+      }
+    </div>
+  </section>
+
   <section class="search" role="search">
     <label for="hero-search">Search heroes</label>
     <input
       id="hero-search"
       type="search"
-      placeholder="輸入關鍵字 (至少 1 個字)"
+      placeholder="輸入關鍵字 (至少 2 個字)"
       autocomplete="off"
       (input)="search($any($event.target).value)" />
 
     @if (searching()) {
       <app-loading-spinner label="Searching..."></app-loading-spinner>
-    } @else if (searchKeyword()) {
-      <p class="muted">搜尋「{{ searchKeyword() }}」</p>
     }
 
     @if (searchError(); as err) {
-      <p class="error">Search failed: {{ err }}</p>
+      <app-message-banner type="error">Search failed: {{ err }}</app-message-banner>
+    } @else if (searchMessage(); as msg) {
+      <app-message-banner type="info">{{ msg }}</app-message-banner>
     }
 
     @if (searchKeyword() && !searching()) {
       <ul class="results">
-        @for (hero of searchResults(); track hero.id) {
+        @for (hero of filteredSearchResults(); track hero.id) {
           <li>
-            <button type="button" (click)="onSelect(hero)">
-              {{ hero.name }}
-              @if (hero.rank) { <span class="rank">[{{ hero.rank }}]</span> }
-            </button>
-            <a [routerLink]="['/detail', hero.id]" (click)="$event.stopPropagation()">View</a>
+            <app-hero-list-item
+              [hero]="hero"
+              [selectedId]="selectedId()"
+              (pick)="onSelect($event)"></app-hero-list-item>
+            <a [routerLink]="['/detail', hero.id]">View</a>
           </li>
         } @empty {
           <li class="muted">找不到符合「{{ searchKeyword() }}」的英雄。</li>
@@ -40,7 +54,6 @@
   </section>
 
   <section class="create" id="create">
-    <app-hero-badge></app-hero-badge>
     <form (ngSubmit)="addHero()">
       <label for="new-hero">Name：</label>
       <input
@@ -52,43 +65,57 @@
         #newCtrl="ngModel"
         [ngModel]="newHeroName()"
         (ngModelChange)="newHeroName.set($event)" />
+
+      <label for="new-hero-rank">Rank：</label>
+      <select
+        id="new-hero-rank"
+        name="new-hero-rank"
+        [ngModel]="newHeroRank()"
+        (ngModelChange)="newHeroRank.set($event)">
+        <option [ngValue]="''">未指定</option>
+        @for (rank of formRankOptions(); track rank) {
+          <option [ngValue]="rank">{{ rankLabel(rank) }}</option>
+        }
+      </select>
+
       <button type="submit" [disabled]="creating() || newCtrl.invalid">
         @if (creating()) { Saving... } @else { Add }
       </button>
     </form>
+
     @if (createError(); as err) {
-      <p class="error">Create failed: {{ err }}</p>
+      <app-message-banner type="error">Create failed: {{ err }}</app-message-banner>
     }
   </section>
 
   @if (feedback(); as msg) {
-    <p class="feedback" aria-live="polite">{{ msg }}</p>
+    <app-message-banner type="success">{{ msg }}</app-message-banner>
   }
 
   @if (deleteError(); as err) {
-    <p class="error" aria-live="assertive">Delete failed: {{ err }}</p>
+    <app-message-banner type="error">Delete failed: {{ err }}</app-message-banner>
   }
 
   <section class="list">
     <ul>
-      @for (h of heroes(); track h.id; let i = $index; let c = $count) {
+      @for (hero of filteredHeroes(); track hero.id; let index = $index; let count = $count) {
         <li
-          (click)="onSelect(h)"
-          [class.is-a]="h.rank === 'A' || h.rank === 'S'"
-          [class.selected]="selectedHero()?.id === h.id"
-          [attr.data-id]="h.id"
-          [attr.aria-current]="selectedHero()?.id === h.id ? 'true' : null">
-          <span class="no">{{ i + 1 }}/{{ c }}</span>
-          <span class="name">{{ h.name }}</span>
-          @if (h.rank) { <span class="rank">[{{ h.rank }}]</span> }
+          [class.selected]="selectedId() === hero.id"
+          [attr.data-id]="hero.id"
+          [attr.aria-current]="selectedId() === hero.id ? 'true' : null">
+          <span class="no">{{ index + 1 }}/{{ count }}</span>
+          <app-hero-list-item
+            [hero]="hero"
+            [selectedId]="selectedId()"
+            (pick)="onSelect($event)"></app-hero-list-item>
           <span class="actions">
-            <a [routerLink]="['/detail', h.id]" (click)="$event.stopPropagation()">View</a>
+            <a [routerLink]="['/detail', hero.id]">View</a>
             <button
               type="button"
               class="danger"
-              (click)="removeHero(h); $event.stopPropagation()"
-              [disabled]="deletingId() === h.id">
-              @if (deletingId() === h.id) { Deleting... } @else { Delete }
+              (click)="removeHero(hero)"
+              [disabled]="deletingId() === hero.id">
+              @if (deletingId() === hero.id) { Deleting... } @else { Delete }
             </button>
           </span>
         </li>
@@ -100,12 +127,12 @@
       }
     </ul>
 
-    @if (selectedHero(); as s) {
+    @if (selectedHero(); as hero) {
       <aside class="panel">
         <h3>Edit</h3>
         <p>
-          #{{ s.id }} - {{ s.name }}
-          @if (s.rank) { <span class="rank">[{{ s.rank }}]</span> }
+          #{{ hero.id }} - {{ hero.name }}
+          @if (hero.rank) { <span class="rank">[{{ hero.rank }}]</span> }
         </p>
 
         <label for="hero-name">Name：</label>
@@ -117,18 +144,33 @@
           minlength="3"
           #nameCtrl="ngModel"
           [ngModel]="editName()"
-          (ngModelChange)="editName.set($event)"
-          [attr.aria-invalid]="nameCtrl.invalid && nameCtrl.touched" />
+          (ngModelChange)="editName.set($event)" />
+
+        <label for="hero-rank">Rank：</label>
+        <select
+          id="hero-rank"
+          name="hero-rank"
+          [ngModel]="editRank()"
+          (ngModelChange)="editRank.set($event)">
+          <option [ngValue]="''">未指定</option>
+          @for (rank of formRankOptions(); track rank) {
+            <option [ngValue]="rank">{{ rankLabel(rank) }}</option>
+          }
+        </select>
 
         <button
           type="button"
           (click)="saveSelected()"
-          [disabled]="saving() || nameCtrl.invalid || editName().trim() === s.name">
+          [disabled]="
+            saving() ||
+            nameCtrl.invalid ||
+            (editName().trim() === hero.name && editRank() === (hero.rank ?? ''))
+          ">
           @if (saving()) { Saving... } @else { Save }
         </button>
 
         @if (saveError(); as err) {
-          <p class="error">Save failed: {{ err }}</p>
+          <app-message-banner type="error">Save failed: {{ err }}</app-message-banner>
         }
       </aside>
     }

@@ -27,24 +27,23 @@ export class HeroDetail {
       const curId = Number(this.id());
       this.loading.set(true);
       this.error.set(null);
-
-      // 以 Observable 取得單筆
-      const sub = this.heroService
-        .getById$(curId)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: (h) => {
-            console.log('hero', h);
-            this.hero.set(h ?? null);
-            this.loading.set(false);
-          },
-          error: (e) => {
-            this.error.set(String(e ?? 'Unknown error'));
-            this.loading.set(false);
-          },
-        });
-
-      return () => sub.unsubscribe();
+      this.loadHero(curId);
     });
+  }
+
+  private loadHero(id: number) {
+    this.heroService
+      .getById(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (h) => {
+          this.hero.set(h ?? null);
+          this.loading.set(false);
+        },
+        error: (e) => {
+          this.error.set(String(e ?? 'Unknown error'));
+          this.loading.set(false);
+        },
+      });
   }
 }

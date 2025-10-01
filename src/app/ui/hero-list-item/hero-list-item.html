@@ -1,0 +1,10 @@
+<button
+  type="button"
+  class="hero-list-item"
+  (click)="triggerSelect()"
+  [class.hero-list-item--active]="selected()">
+  <span class="hero-list-item__name">{{ hero().name }}</span>
+  @if (hero().rank) {
+    <app-hero-badge [rank]="hero().rank"></app-hero-badge>
+  }
+</button>

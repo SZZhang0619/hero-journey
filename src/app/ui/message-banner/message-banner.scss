@@ -1,0 +1,26 @@
+.banner {
+  margin: 12px 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.banner.info {
+  background: #eef4ff;
+  border-color: #ccdcff;
+  color: #1d3a78;
+}
+
+.banner.error {
+  background: #fdecea;
+  border-color: #f2b8b5;
+  color: #8b1b1b;
+}
+
+.banner.success {
+  background: #edf9f2;
+  border-color: #bfe5cd;
+  color: #185c35;
+}

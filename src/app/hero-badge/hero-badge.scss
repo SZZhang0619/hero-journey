@@ -3,8 +3,14 @@
 }
 
 .badge {
-  padding: 4px 8px;
-  border-radius: 4px;
-  background: #eef;
+  display: inline-block;
+  min-width: 44px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e4ebff;
+  color: #1d3a78;
   font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: center;
 }
