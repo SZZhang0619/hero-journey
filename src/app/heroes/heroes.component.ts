@@ -33,7 +33,6 @@ type HeroRank = '' | 'S' | 'A' | 'B' | 'C';
 @Component({
   selector: 'app-heroes',
   imports: [
-    HeroBadge,
     FormsModule,
     RouterModule,
     LoadingSpinner,

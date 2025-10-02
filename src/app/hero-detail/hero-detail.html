@@ -4,6 +4,16 @@
 	<p class="error">Load failed: {{ e }}</p>
 } @else if (hero(); as h) {
 	<section class="detail">
+		@if (avatarUrl(); as src) {
+			<figure class="detail__media">
+				<img
+					[ngSrc]="src"
+					width="320"
+					height="320"
+					[attr.fetchpriority]="h.rank === 'S' ? 'high' : null"
+					alt="{{ h.name }} portrait" />
+			</figure>
+		}
 		<h2>Hero #{{ h.id }}</h2>
 		<p>
 			<strong>{{ h.name }}</strong>
