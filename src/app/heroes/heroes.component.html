@@ -54,31 +54,26 @@
   </section>
 
   <section class="create" id="create">
-    <form (ngSubmit)="addHero()">
+    <form [formGroup]="createForm" (ngSubmit)="addHero()">
       <label for="new-hero">Name：</label>
       <input
         id="new-hero"
-        name="new-hero"
         placeholder="enter new hero"
-        required
-        minlength="3"
-        #newCtrl="ngModel"
-        [ngModel]="newHeroName()"
-        (ngModelChange)="newHeroName.set($event)" />
+        formControlName="name"
+        type="text" />
+      @if (createForm.controls.name.touched && createForm.controls.name.invalid) {
+        <small class="error">請輸入至少 3 個字</small>
+      }
 
       <label for="new-hero-rank">Rank：</label>
-      <select
-        id="new-hero-rank"
-        name="new-hero-rank"
-        [ngModel]="newHeroRank()"
-        (ngModelChange)="newHeroRank.set($event)">
+      <select id="new-hero-rank" formControlName="rank">
         <option [ngValue]="''">未指定</option>
         @for (rank of formRankOptions(); track rank) {
           <option [ngValue]="rank">{{ rankLabel(rank) }}</option>
         }
       </select>
 
-      <button type="submit" [disabled]="creating() || newCtrl.invalid">
+      <button type="submit" [disabled]="creating() || createForm.invalid">
         @if (creating()) { Saving... } @else { Add }
       </button>
     </form>
@@ -128,7 +123,7 @@
     </ul>
 
     @if (selectedHero(); as hero) {
-      <aside class="panel">
+      <aside class="panel" [formGroup]="editForm">
         <h3>Edit</h3>
         <p>
           #{{ hero.id }} - {{ hero.name }}
@@ -136,22 +131,13 @@
         </p>
 
         <label for="hero-name">Name：</label>
-        <input
-          id="hero-name"
-          name="hero-name"
-          type="text"
-          required
-          minlength="3"
-          #nameCtrl="ngModel"
-          [ngModel]="editName()"
-          (ngModelChange)="editName.set($event)" />
+        <input id="hero-name" type="text" formControlName="name" />
+        @if (editForm.controls.name.touched && editForm.controls.name.invalid) {
+          <small class="error">請輸入至少 3 個字</small>
+        }
 
         <label for="hero-rank">Rank：</label>
-        <select
-          id="hero-rank"
-          name="hero-rank"
-          [ngModel]="editRank()"
-          (ngModelChange)="editRank.set($event)">
+        <select id="hero-rank" formControlName="rank">
           <option [ngValue]="''">未指定</option>
           @for (rank of formRankOptions(); track rank) {
             <option [ngValue]="rank">{{ rankLabel(rank) }}</option>
@@ -161,11 +147,7 @@
         <button
           type="button"
           (click)="saveSelected()"
-          [disabled]="
-            saving() ||
-            nameCtrl.invalid ||
-            (editName().trim() === hero.name && editRank() === (hero.rank ?? ''))
-          ">
+          [disabled]="saving() || editForm.invalid || !dirtyCompared()">
           @if (saving()) { Saving... } @else { Save }
         </button>
 

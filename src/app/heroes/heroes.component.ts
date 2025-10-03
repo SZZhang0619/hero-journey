@@ -7,10 +7,15 @@ import {
   signal,
 } from '@angular/core';
 import { HeroService, Hero } from '../hero.service';
-import { FormsModule } from '@angular/forms';
+import {
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterModule } from '@angular/router';
-import { HeroBadge } from '../hero-badge/hero-badge';
 import {
   EMPTY,
   Subject,
@@ -29,11 +34,15 @@ import { HeroListItem } from '../ui/hero-list-item/hero-list-item';
 import { MessageBanner } from '../ui/message-banner/message-banner';
 
 type HeroRank = '' | 'S' | 'A' | 'B' | 'C';
+type HeroFormGroup = FormGroup<{
+  name: FormControl<string>;
+  rank: FormControl<HeroRank>;
+}>;
 
 @Component({
   selector: 'app-heroes',
   imports: [
-    FormsModule,
+    ReactiveFormsModule,
     RouterModule,
     LoadingSpinner,
     MessageBanner,
@@ -45,6 +54,7 @@ type HeroRank = '' | 'S' | 'A' | 'B' | 'C';
 export class HeroesComponent {
   private readonly heroService = inject(HeroService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly fb = inject(FormBuilder);
 
   protected readonly heroes = this.heroService.heroesState;
   protected readonly heroesLoading = signal(true);
@@ -86,8 +96,15 @@ export class HeroesComponent {
     return derived.length ? derived : this.fallbackRanks;
   });
 
-  protected readonly newHeroName = signal('');
-  protected readonly newHeroRank = signal<HeroRank>('');
+  protected readonly createForm: HeroFormGroup = this.fb.nonNullable.group({
+    name: ['', [Validators.required, Validators.minLength(3)]],
+    rank: this.fb.nonNullable.control<HeroRank>(''),
+  });
+  protected readonly editForm: HeroFormGroup = this.fb.nonNullable.group({
+    name: ['', [Validators.required, Validators.minLength(3)]],
+    rank: this.fb.nonNullable.control<HeroRank>(''),
+  });
+  protected readonly editFormValue = signal<{name: string, rank: HeroRank}>({name: '', rank: ''});
   protected readonly creating = signal(false);
   protected readonly createError = signal<string | null>(null);
 
@@ -99,8 +116,19 @@ export class HeroesComponent {
     }
     return this.heroes().find((hero) => hero.id === id) ?? null;
   });
-  protected readonly editName = signal('');
-  protected readonly editRank = signal<HeroRank>('');
+  protected readonly dirtyCompared = computed(() => {
+    const selected = this.selectedHero();
+    if (!selected) {
+      return false;
+    }
+    const value = this.editFormValue();
+    const isDirty = (
+      value.name.trim() !== selected.name ||
+      value.rank !== ((selected.rank as HeroRank) ?? '')
+    );
+
+    return isDirty;
+  });
   protected readonly saving = signal(false);
   protected readonly saveError = signal<string | null>(null);
 
@@ -116,6 +144,16 @@ export class HeroesComponent {
   protected readonly searching = signal(false);
 
   constructor() {
+    // 監聽編輯表單值變化
+    this.editForm.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(value => {
+        this.editFormValue.set({
+          name: value.name || '',
+          rank: value.rank || ''
+        });
+      });
+
     this.heroService
       .loadAll()
       .pipe(
@@ -133,16 +171,38 @@ export class HeroesComponent {
 
     effect(() => {
       const options = this.formRankOptions();
-      const current = this.newHeroRank();
-      if (current !== '' && !options.includes(current) && options.length) {
-        this.newHeroRank.set(options[0]);
+      const control = this.createForm.controls.rank;
+      const current = control.value;
+      if (!current) {
+        return;
+      }
+      if (!options.includes(current)) {
+        const fallback: HeroRank = options[0] ?? '';
+        control.setValue(fallback, { emitEvent: false });
+        control.markAsPristine();
+        control.markAsUntouched();
       }
     });
 
     effect(() => {
       const selected = this.selectedHero();
-      this.editName.set(selected?.name ?? '');
-      this.editRank.set((selected?.rank as HeroRank) ?? '');
+      if (!selected) {
+        this.editForm.reset({ name: '', rank: '' });
+        this.editForm.markAsPristine();
+        this.editForm.markAsUntouched();
+        this.editFormValue.set({ name: '', rank: '' });
+        this.saveError.set(null);
+        return;
+      }
+
+      const formValue = {
+        name: selected.name,
+        rank: (selected.rank as HeroRank) ?? '',
+      };
+      this.editForm.reset(formValue);
+      this.editForm.markAsPristine();
+      this.editForm.markAsUntouched();
+      this.editFormValue.set(formValue);
       this.saveError.set(null);
     });
 
@@ -204,14 +264,15 @@ export class HeroesComponent {
   }
 
   protected addHero() {
-    const name = this.newHeroName().trim();
-    if (!name) {
+    if (this.createForm.invalid) {
+      this.createForm.markAllAsTouched();
       return;
     }
 
+    const { name, rank } = this.createForm.getRawValue();
     const payload: Pick<Hero, 'name' | 'rank'> = {
-      name,
-      rank: this.newHeroRank() || undefined,
+      name: name.trim(),
+      rank: rank || undefined,
     };
 
     this.creating.set(true);
@@ -227,7 +288,7 @@ export class HeroesComponent {
       .subscribe({
         next: (created) => {
           this.feedback.set('新增英雄成功！');
-          this.resetCreateForm();
+          this.createForm.reset({ name: '', rank: '' });
           this.selectedId.set(created.id);
         },
         error: (err) => {
@@ -238,22 +299,18 @@ export class HeroesComponent {
 
   protected saveSelected() {
     const hero = this.selectedHero();
-    if (!hero) {
+    if (!hero || this.editForm.invalid || !this.dirtyCompared()) {
       return;
     }
 
-    const name = this.editName().trim();
-    const rank = this.editRank();
-    if (name === hero.name && rank === (hero.rank ?? '')) {
-      return;
-    }
+    const { name, rank } = this.editForm.getRawValue();
 
     this.saving.set(true);
     this.saveError.set(null);
     this.feedback.set(null);
 
     this.heroService
-      .update(hero.id, { name, rank: rank || undefined })
+      .update(hero.id, { name: name.trim(), rank: rank || undefined })
       .pipe(
         finalize(() => this.saving.set(false)),
         takeUntilDestroyed(this.destroyRef)
@@ -302,10 +359,5 @@ export class HeroesComponent {
   protected onSelect(heroId: number) {
     const current = this.selectedId();
     this.selectedId.set(current === heroId ? null : heroId);
-  }
-
-  private resetCreateForm() {
-    this.newHeroName.set('');
-    this.newHeroRank.set('');
   }
 }
