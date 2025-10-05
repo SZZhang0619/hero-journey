@@ -61,8 +61,10 @@
         placeholder="enter new hero"
         formControlName="name"
         type="text" />
-      @if (createForm.controls.name.touched && createForm.controls.name.invalid) {
-        <small class="error">請輸入至少 3 個字</small>
+      @if (controlError(createForm.controls.name); as err) {
+        <small class="error">{{ err }}</small>
+      } @else if (createForm.controls.name.pending) {
+        <small class="hint">檢查名稱中...</small>
       }
 
       <label for="new-hero-rank">Rank：</label>
@@ -73,7 +75,7 @@
         }
       </select>
 
-      <button type="submit" [disabled]="creating() || createForm.invalid">
+      <button type="submit" [disabled]="creating() || createForm.invalid || createForm.pending">
         @if (creating()) { Saving... } @else { Add }
       </button>
     </form>
@@ -132,8 +134,10 @@
 
         <label for="hero-name">Name：</label>
         <input id="hero-name" type="text" formControlName="name" />
-        @if (editForm.controls.name.touched && editForm.controls.name.invalid) {
-          <small class="error">請輸入至少 3 個字</small>
+        @if (controlError(editForm.controls.name); as err) {
+          <small class="error">{{ err }}</small>
+        } @else if (editForm.controls.name.pending) {
+          <small class="hint">檢查名稱中...</small>
         }
 
         <label for="hero-rank">Rank：</label>
@@ -147,7 +151,7 @@
         <button
           type="button"
           (click)="saveSelected()"
-          [disabled]="saving() || editForm.invalid || !dirtyCompared()">
+          [disabled]="saving() || editForm.invalid || editForm.pending || !dirtyCompared()">
           @if (saving()) { Saving... } @else { Save }
         </button>
 

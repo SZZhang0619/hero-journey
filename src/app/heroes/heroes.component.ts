@@ -8,10 +8,14 @@ import {
 } from '@angular/core';
 import { HeroService, Hero } from '../hero.service';
 import {
+  AbstractControl,
+  AsyncValidatorFn,
   FormBuilder,
   FormControl,
   FormGroup,
   ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
   Validators,
 } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -28,6 +32,7 @@ import {
   of,
   switchMap,
   tap,
+  timer,
 } from 'rxjs';
 import { LoadingSpinner } from '../ui/loading-spinner/loading-spinner';
 import { HeroListItem } from '../ui/hero-list-item/hero-list-item';
@@ -38,6 +43,20 @@ type HeroFormGroup = FormGroup<{
   name: FormControl<string>;
   rank: FormControl<HeroRank>;
 }>;
+
+const HERO_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9\s'-]{2,23}$/;
+const RESERVED_HERO_NAMES = ['admin', 'root', 'unknown'] as const;
+
+function heroNameReservedValidator(names: readonly string[]): ValidatorFn {
+  const normalized = names.map((name) => name.trim().toLowerCase());
+  return (control) => {
+    const value = (control.value ?? '').trim().toLowerCase();
+    if (!value) {
+      return null;
+    }
+    return normalized.includes(value) ? { reserved: true } : null;
+  };
+}
 
 @Component({
   selector: 'app-heroes',
@@ -97,11 +116,29 @@ export class HeroesComponent {
   });
 
   protected readonly createForm: HeroFormGroup = this.fb.nonNullable.group({
-    name: ['', [Validators.required, Validators.minLength(3)]],
+    name: this.fb.nonNullable.control('', {
+      validators: [
+        Validators.required,
+        Validators.minLength(3),
+        Validators.maxLength(24),
+        Validators.pattern(HERO_NAME_PATTERN),
+        heroNameReservedValidator(RESERVED_HERO_NAMES),
+      ],
+      updateOn: 'blur',
+    }),
     rank: this.fb.nonNullable.control<HeroRank>(''),
   });
   protected readonly editForm: HeroFormGroup = this.fb.nonNullable.group({
-    name: ['', [Validators.required, Validators.minLength(3)]],
+    name: this.fb.nonNullable.control('', {
+      validators: [
+        Validators.required,
+        Validators.minLength(3),
+        Validators.maxLength(24),
+        Validators.pattern(HERO_NAME_PATTERN),
+        heroNameReservedValidator(RESERVED_HERO_NAMES),
+      ],
+      updateOn: 'blur',
+    }),
     rank: this.fb.nonNullable.control<HeroRank>(''),
   });
   protected readonly editFormValue = signal<{name: string, rank: HeroRank}>({name: '', rank: ''});
@@ -143,7 +180,40 @@ export class HeroesComponent {
   protected readonly searchError = signal<string | null>(null);
   protected readonly searching = signal(false);
 
+  private lastEditHeroId: number | null = null;
+
+  private readonly validationMessages: Record<string, string> = {
+    required: '名稱必填，不能空白。',
+    minlength: '請至少輸入 3 個字。',
+    maxlength: '名稱不可超過 24 個字。',
+    pattern: '僅允許英文、數字、空白與 -′ 字元。',
+    reserved: '這個名稱被列為保留字，請換一個。',
+    duplicated: '已有英雄使用這個名稱。',
+  };
+
+  protected controlError(control: AbstractControl | null): string | null {
+    if (!control || control.disabled || !control.invalid || !control.touched) {
+      return null;
+    }
+    const errors = control.errors as ValidationErrors | null;
+    if (!errors) {
+      return null;
+    }
+    for (const key of Object.keys(errors)) {
+      const message = this.validationMessages[key];
+      if (message) {
+        return message;
+      }
+    }
+    return '輸入格式不正確，請再試一次。';
+  }
+
   constructor() {
+    for (const control of [this.createForm.controls.name, this.editForm.controls.name]) {
+      control.addAsyncValidators(this.heroNameTakenValidator());
+      control.updateValueAndValidity({ onlySelf: true, emitEvent: false });
+    }
+
     // 監聽編輯表單值變化
     this.editForm.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -187,7 +257,8 @@ export class HeroesComponent {
     effect(() => {
       const selected = this.selectedHero();
       if (!selected) {
-        this.editForm.reset({ name: '', rank: '' });
+        this.lastEditHeroId = null;
+        this.editForm.reset({ name: '', rank: '' }, { emitEvent: false });
         this.editForm.markAsPristine();
         this.editForm.markAsUntouched();
         this.editFormValue.set({ name: '', rank: '' });
@@ -195,11 +266,29 @@ export class HeroesComponent {
         return;
       }
 
-      const formValue = {
+      const desiredValue = {
         name: selected.name,
         rank: (selected.rank as HeroRank) ?? '',
       };
-      this.editForm.reset(formValue);
+      const isNewSelection = this.lastEditHeroId !== selected.id;
+      const currentValue = this.editForm.getRawValue();
+
+      if (!isNewSelection && this.editForm.dirty) {
+        return;
+      }
+
+      const alreadySynced =
+        currentValue.name === desiredValue.name && currentValue.rank === desiredValue.rank;
+      if (!isNewSelection && alreadySynced) {
+        return;
+      }
+
+      this.lastEditHeroId = selected.id;
+      const formValue = {
+        name: desiredValue.name,
+        rank: desiredValue.rank,
+      };
+      this.editForm.reset(formValue, { emitEvent: false });
       this.editForm.markAsPristine();
       this.editForm.markAsUntouched();
       this.editFormValue.set(formValue);
@@ -359,5 +448,42 @@ export class HeroesComponent {
   protected onSelect(heroId: number) {
     const current = this.selectedId();
     this.selectedId.set(current === heroId ? null : heroId);
+  }
+
+  private heroNameTakenValidator(): AsyncValidatorFn {
+    return (control) => {
+      const raw = (control.value ?? '').trim();
+      if (!raw) {
+        return of(null);
+      }
+
+      const value = raw.toLowerCase();
+      const currentId = this.selectedId();
+      const selected = this.selectedHero();
+      if (
+        selected &&
+        selected.id === currentId &&
+        selected.name.trim().toLowerCase() === value
+      ) {
+        return of(null);
+      }
+      const existsLocally = this.heroes().some(
+        (hero) => hero.name.toLowerCase() === value && hero.id !== currentId
+      );
+      if (existsLocally) {
+        return of({ duplicated: true });
+      }
+
+      return timer(300).pipe(
+        switchMap(() => this.heroService.search$(raw)),
+        map((heroes) => {
+          const taken = heroes.some(
+            (hero) => hero.name.toLowerCase() === value && hero.id !== currentId
+          );
+          return taken ? { duplicated: true } : null;
+        }),
+        catchError(() => of(null))
+      );
+    };
   }
 }

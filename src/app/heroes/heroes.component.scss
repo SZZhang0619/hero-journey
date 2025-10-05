@@ -125,6 +125,16 @@
   cursor: not-allowed;
 }
 
+.error {
+  color: #d92d20;
+  font-size: 0.85rem;
+}
+
+.hint {
+  color: #475467;
+  font-size: 0.85rem;
+}
+
 .list ul {
   list-style: none;
   padding: 0;
