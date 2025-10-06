@@ -18,7 +18,7 @@ import {
   ValidatorFn,
   Validators,
 } from '@angular/forms';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { RouterModule } from '@angular/router';
 import {
   EMPTY,
@@ -33,6 +33,7 @@ import {
   switchMap,
   tap,
   timer,
+  startWith,
 } from 'rxjs';
 import { LoadingSpinner } from '../ui/loading-spinner/loading-spinner';
 import { HeroListItem } from '../ui/hero-list-item/hero-list-item';
@@ -43,6 +44,12 @@ type HeroFormGroup = FormGroup<{
   name: FormControl<string>;
   rank: FormControl<HeroRank>;
 }>;
+
+type SearchState =
+  | { status: 'idle'; term: ''; heroes: Hero[]; message: string | null; error: null }
+  | { status: 'loading'; term: string; heroes: Hero[]; message: string; error: null }
+  | { status: 'success'; term: string; heroes: Hero[]; message: string; error: null }
+  | { status: 'error'; term: string; heroes: Hero[]; message: string; error: string };
 
 const HERO_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9\s'-]{2,23}$/;
 const RESERVED_HERO_NAMES = ['admin', 'root', 'unknown'] as const;
@@ -98,11 +105,18 @@ export class HeroesComponent {
     }
     return list.filter((hero) => hero.rank === rank);
   });
+  protected readonly showEmpty = computed(() => {
+    const baseList = this.filteredHeroes();
+    const search = this.searchState();
+    if (search.status === 'success' && search.term) {
+      return baseList.length === 0 && search.heroes.length === 0;
+    }
+    return baseList.length === 0;
+  });
 
-  protected readonly rawSearchResults = signal<Hero[]>([]);
   protected readonly filteredSearchResults = computed(() => {
     const rank = this.activeRank();
-    const results = this.rawSearchResults();
+    const results = this.searchState().heroes;
     if (rank === 'ALL') {
       return results;
     }
@@ -175,10 +189,68 @@ export class HeroesComponent {
   protected readonly feedback = signal<string | null>(null);
 
   private readonly searchTerms = new Subject<string>();
-  protected readonly searchKeyword = signal('');
-  protected readonly searchMessage = signal<string | null>(null);
-  protected readonly searchError = signal<string | null>(null);
-  protected readonly searching = signal(false);
+  protected readonly searchState = toSignal(
+    this.searchTerms.pipe(
+      map((term) => term.trim()),
+      debounceTime(300),
+      distinctUntilChanged(),
+      filter((term) => term.length === 0 || term.length >= 2),
+      tap(() => this.feedback.set(null)),
+      switchMap((term) => {
+        if (!term) {
+          return of<SearchState>({
+            status: 'idle',
+            term: '',
+            heroes: [],
+            message: null,
+            error: null,
+          });
+        }
+
+        return this.heroService.search$(term).pipe(
+          map((heroes) => ({
+            status: 'success',
+            term,
+            heroes,
+            message: heroes.length
+              ? `命中 ${heroes.length} 位英雄`
+              : '沒有符合條件的英雄，試著換個關鍵字。',
+            error: null,
+          }) satisfies SearchState),
+          startWith<SearchState>({
+            status: 'loading',
+            term,
+            heroes: [],
+            message: '搜尋中...',
+            error: null,
+          }),
+          catchError((err) =>
+            of<SearchState>({
+              status: 'error',
+              term,
+              heroes: [],
+              message: '查詢失敗，可稍後重試。',
+              error: String(err ?? 'Unknown error'),
+            })
+          )
+        );
+      })
+    ),
+    {
+      initialValue: {
+        status: 'idle',
+        term: '',
+        heroes: [],
+        message: null,
+        error: null
+      } as SearchState
+    }
+  );
+
+  protected readonly searchMessage = computed(() => this.searchState().message);
+  protected readonly searchError = computed(() => this.searchState().error);
+  protected readonly searching = computed(() => this.searchState().status === 'loading');
+  protected readonly searchKeyword = computed(() => this.searchState().term);
 
   private lastEditHeroId: number | null = null;
 
@@ -295,49 +367,6 @@ export class HeroesComponent {
       this.saveError.set(null);
     });
 
-    this.searchTerms
-      .pipe(
-        map((term) => term.trim()),
-        debounceTime(300),
-        distinctUntilChanged(),
-        filter((term) => term.length === 0 || term.length >= 2),
-        tap((term) => {
-          this.searchKeyword.set(term);
-          this.searchError.set(null);
-          this.searchMessage.set(term ? '搜尋中...' : null);
-          this.feedback.set(null);
-          if (!term) {
-            this.rawSearchResults.set([]);
-          }
-          this.searching.set(term.length > 0);
-        }),
-        switchMap((term) => {
-          if (!term) {
-            return of<Hero[]>([]);
-          }
-
-          return this.heroService.search$(term).pipe(
-            tap((heroes) => {
-              if (heroes.length) {
-                this.searchMessage.set(`命中 ${heroes.length} 位英雄`);
-              } else {
-                this.searchMessage.set('沒有符合條件的英雄，試著換個關鍵字。');
-              }
-            }),
-            catchError((err) => {
-              this.searchError.set(String(err ?? 'Unknown error'));
-              this.searchMessage.set('查詢失敗，可稍後重試。');
-              return of<Hero[]>([]);
-            }),
-            finalize(() => this.searching.set(false))
-          );
-        }),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe((heroes) => {
-        this.rawSearchResults.set(heroes);
-        this.searching.set(false);
-      });
   }
 
   protected setRankFilter(option: string) {

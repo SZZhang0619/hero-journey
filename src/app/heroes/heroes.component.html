@@ -26,17 +26,14 @@
       autocomplete="off"
       (input)="search($any($event.target).value)" />
 
-    @if (searching()) {
-      <app-loading-spinner label="Searching..."></app-loading-spinner>
+    @switch (searchState().status) {
+      @case ('loading') { <app-loading-spinner label="Searching..."></app-loading-spinner> }
+      @case ('error') { <app-message-banner type="error">{{ searchError() }}</app-message-banner> }
+      @case ('success') { <app-message-banner type="info">{{ searchMessage() }}</app-message-banner> }
+      @case ('idle') { @if (searchMessage()) { <app-message-banner type="info">{{ searchMessage() }}</app-message-banner> } }
     }
 
-    @if (searchError(); as err) {
-      <app-message-banner type="error">Search failed: {{ err }}</app-message-banner>
-    } @else if (searchMessage(); as msg) {
-      <app-message-banner type="info">{{ msg }}</app-message-banner>
-    }
-
-    @if (searchKeyword() && !searching()) {
+    @if (searchKeyword() && searchState().status !== 'loading') {
       <ul class="results">
         @for (hero of filteredSearchResults(); track hero.id) {
           <li>
@@ -116,7 +113,9 @@
             </button>
           </span>
         </li>
-      } @empty {
+      }
+
+      @if (showEmpty()) {
         <li class="empty-state" aria-live="polite">
           <h3>目前還沒有英雄</h3>
           <p>點擊上方的 Add 建立第一位夥伴，或在 in-memory API 填入假資料。</p>

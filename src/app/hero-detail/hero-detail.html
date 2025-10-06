@@ -1,26 +1,32 @@
-@if (loading()) {
-	<p class="muted">Loading detail...</p>
-} @else if (error(); as e) {
-	<p class="error">Load failed: {{ e }}</p>
-} @else if (hero(); as h) {
-	<section class="detail">
-		@if (avatarUrl(); as src) {
-			<figure class="detail__media">
-				<img
-					[ngSrc]="src"
-					width="320"
-					height="320"
-					[attr.fetchpriority]="h.rank === 'S' ? 'high' : null"
-					alt="{{ h.name }} portrait" />
-			</figure>
+@switch (heroState().status) {
+	@case ('loading') {
+		<app-loading-spinner label="Loading hero..."></app-loading-spinner>
+	}
+	@case ('error') {
+		<app-message-banner type="error">{{ heroState().error }}</app-message-banner>
+	}
+	@case ('ready') {
+		@if (hero(); as currentHero) {
+			<section class="detail">
+				@if (avatarUrl(); as src) {
+					<figure class="detail__media">
+						<img
+							[ngSrc]="src"
+							width="320"
+							height="320"
+							[attr.fetchpriority]="currentHero.rank === 'S' ? 'high' : null"
+							alt="{{ currentHero.name }} portrait" />
+					</figure>
+				}
+				<h2>Hero #{{ currentHero.id }}</h2>
+				<p>
+					<strong>{{ currentHero.name }}</strong>
+					@if (currentHero.rank) { <span class="rank">[{{ currentHero.rank }}]</span> }
+				</p>
+				<a routerLink="/heroes">← Back to list</a>
+			</section>
+		} @else {
+			<p class="muted">No hero found.</p>
 		}
-		<h2>Hero #{{ h.id }}</h2>
-		<p>
-			<strong>{{ h.name }}</strong>
-			@if (h.rank) { <span class="rank">[{{ h.rank }}]</span> }
-		</p>
-		<a routerLink="/heroes">← Back to list</a>
-	</section>
-} @else {
-	<p class="muted">No hero found.</p>
+	}
 }
