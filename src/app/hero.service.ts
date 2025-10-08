@@ -27,13 +27,18 @@ export class HeroService {
     );
   }
 
-  getById(id: number): Observable<Hero> {
+  getById(id: number, options?: { signal?: AbortSignal }): Observable<Hero> {
     const cached = this.heroesById().get(id);
     if (cached) {
       return of(cached);
     }
 
-    return this.http.get<Hero>(`${this.baseUrl}/${id}`).pipe(
+    const httpOptions: Record<string, unknown> = {};
+    if (options?.signal) {
+      (httpOptions as { signal?: AbortSignal }).signal = options.signal;
+    }
+
+    return this.http.get<Hero>(`${this.baseUrl}/${id}`, httpOptions).pipe(
       tap((hero) => {
         this.heroes.update((current) => {
           const exists = current.some((item) => item.id === hero.id);
