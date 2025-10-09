@@ -1,4 +1,14 @@
-  <section>
-    <h2>Dashboard</h2>
-    <p class="muted">Welcome! 從這裡開始導航你的英雄世界。</p>
-  </section>
+<section class="dashboard">
+  <h2>Dashboard</h2>
+  <p class="muted">以下排行榜為次要內容，進入視窗再載入。</p>
+
+  @defer (on viewport; prefetch on idle) {
+    <app-top-heroes-chart />
+  } @placeholder (minimum 300ms) {
+    <div class="skeleton skeleton--chart" aria-hidden="true"></div>
+  } @loading (after 100ms; minimum 400ms) {
+    <app-loading-spinner label="載入排行榜..." />
+  } @error {
+    <app-message-banner type="error">排行榜載入失敗，稍後再試。</app-message-banner>
+  }
+</section>
