@@ -43,6 +43,41 @@ export class HeroDetail {
     const seed = encodeURIComponent(detail.name);
     return `https://api.dicebear.com/7.x/bottts-neutral/png?seed=${seed}&size=320&background=%23eef3ff`;
   });
+  readonly battleAnalysis = computed(() => {
+    const detail = this.hero();
+    if (!detail) {
+      return null;
+    }
+
+    const skillsCount = detail.skills?.length ?? 0;
+    const rankBoost = (() => {
+      switch (detail.rank) {
+        case 'S':
+          return { win: 18, mvp: 22 };
+        case 'A':
+          return { win: 12, mvp: 14 };
+        case 'B':
+          return { win: 6, mvp: 8 };
+        case 'C':
+          return { win: 2, mvp: 4 };
+        default:
+          return { win: 0, mvp: 0 };
+      }
+    })();
+
+    const missions = 32 + (detail.id % 7) * 5 + skillsCount * 3;
+    const winRate = Math.min(98, 68 + rankBoost.win + skillsCount * 2);
+    const mvpRate = Math.min(72, 18 + rankBoost.mvp + skillsCount * 4);
+    const avgDuration = Math.max(9, 28 - rankBoost.win / 2 - skillsCount * 1.5);
+
+    return {
+      missions,
+      winRate,
+      mvpRate,
+      avgDuration: Number(avgDuration.toFixed(1)),
+      synergyScore: Math.min(100, Math.round((winRate * 0.6 + mvpRate * 0.4))),
+    };
+  });
 
   reload() {
     this.heroResource.reload();

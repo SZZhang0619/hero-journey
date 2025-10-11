@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Observable, of, tap } from 'rxjs';
 
-export type Hero = { id: number; name: string; rank?: string };
+export type Hero = { id: number; name: string; rank?: string; skills?: string[] };
 
 @Injectable({
   providedIn: 'root',
@@ -48,10 +48,11 @@ export class HeroService {
     );
   }
 
-  create(hero: Pick<Hero, 'name' | 'rank'>): Observable<Hero> {
+  create(hero: Pick<Hero, 'name' | 'rank' | 'skills'>): Observable<Hero> {
     const payload = {
       name: hero.name.trim(),
       ...(hero.rank ? { rank: hero.rank } : {}),
+      ...(hero.skills && hero.skills.length ? { skills: hero.skills } : {}),
     } as Partial<Hero>;
 
     return this.http.post<Hero>(this.baseUrl, payload).pipe(
@@ -68,6 +69,9 @@ export class HeroService {
     };
     if (payload.rank === '' || payload.rank == null) {
       delete payload.rank;
+    }
+    if (!payload.skills || payload.skills.length === 0) {
+      delete payload.skills;
     }
 
     return this.http.put<Hero>(`${this.baseUrl}/${id}`, payload).pipe(

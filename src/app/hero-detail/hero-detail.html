@@ -20,6 +20,49 @@
 		</header>
 		<a routerLink="/heroes">← Back to list</a>
 	</section>
+	<section class="analysis" aria-live="polite">
+		<header class="analysis__header">
+			<h3>戰績分析</h3>
+			<p class="muted">互動後載入精簡戰報。</p>
+		</header>
+		@defer (on interaction(trigger); prefetch on idle) {
+			@if (battleAnalysis(); as stats) {
+				<dl class="analysis__stats">
+					<div class="analysis__stat">
+						<dt>年度任務</dt>
+						<dd>{{ stats.missions }} 場</dd>
+					</div>
+					<div class="analysis__stat">
+						<dt>勝率</dt>
+						<dd>{{ stats.winRate }}%</dd>
+					</div>
+					<div class="analysis__stat">
+						<dt>MVP 率</dt>
+						<dd>{{ stats.mvpRate }}%</dd>
+					</div>
+					<div class="analysis__stat">
+						<dt>平均戰鬥時長</dt>
+						<dd>{{ stats.avgDuration }} 分鐘</dd>
+					</div>
+					<div class="analysis__stat analysis__stat--highlight">
+						<dt>協同作戰分數</dt>
+						<dd>{{ stats.synergyScore }}</dd>
+					</div>
+				</dl>
+				<p class="analysis__remark">
+					{{ detail.name }} 擁有 {{ detail.skills?.length ?? 0 }} 項技能
+					@if (detail.skills?.length) {
+						（{{ detail.skills?.join('、') }}）
+					}
+					，綜合表現穩定。
+				</p>
+			} @else {
+				<p class="muted">暫無戰績資料。</p>
+			}
+		} @placeholder {
+			<button #trigger type="button" class="analysis__trigger">查看戰績分析</button>
+		}
+	</section>
 } @else {
 	<p class="muted">No hero found.</p>
 }

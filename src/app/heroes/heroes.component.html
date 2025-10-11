@@ -72,6 +72,27 @@
         }
       </select>
 
+      <fieldset formArrayName="skills" class="skills">
+        <legend>Skills：</legend>
+        @for (control of createSkills.controls; track control; let i = $index) {
+          <div class="skills__item">
+            <input type="text" [formControlName]="i" placeholder="輸入技能" />
+            <button type="button" class="muted skills__remove" (click)="removeSkill(createSkills, i)">
+              移除
+            </button>
+            @if (controlError(control); as err) {
+              <small class="error">{{ err }}</small>
+            }
+          </div>
+        }
+        <button type="button" class="muted skills__add" (click)="addSkill(createSkills)">
+          + 新增技能
+        </button>
+        @if (controlError(createSkills); as err) {
+          <small class="error">{{ err }}</small>
+        }
+      </fieldset>
+
       <button type="submit" [disabled]="creating() || createForm.invalid || createForm.pending">
         @if (creating()) { Saving... } @else { Add }
       </button>
@@ -146,6 +167,27 @@
             <option [ngValue]="rank">{{ rankLabel(rank) }}</option>
           }
         </select>
+
+        <fieldset formArrayName="skills" class="skills">
+          <legend>Skills：</legend>
+          @for (control of editSkills.controls; track control; let i = $index) {
+            <div class="skills__item">
+              <input type="text" [formControlName]="i" placeholder="輸入技能" />
+              <button type="button" class="muted skills__remove" (click)="removeSkill(editSkills, i)">
+                移除
+              </button>
+              @if (controlError(control); as err) {
+                <small class="error">{{ err }}</small>
+              }
+            </div>
+          }
+          <button type="button" class="muted skills__add" (click)="addSkill(editSkills)">
+            + 新增技能
+          </button>
+          @if (controlError(editSkills); as err) {
+            <small class="error">{{ err }}</small>
+          }
+        </fieldset>
 
         <button
           type="button"
